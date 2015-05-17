@@ -9,41 +9,43 @@ output:
 ## Loading and preprocessing the data
 First we need to unzip then load the data into a dataframe. Since we are working from a github repository it is safe to assume the zip file exists.
 ```{r load}
+library(lubridate)
 unzip("activity.zip")
-activity <- read.csv("activity.csv", header = TRUE)  
+activity <- read.csv("activity.csv", header = TRUE)
+activity$date <- ymd(activity$date)
 ```
 
 ## What is mean total number of steps taken per day?
 Now let's look at the skewness of our step counts.
 ```{r mean_steps}
 library(ggplot2)
-qplot(x=steps,data=activity,geom="bar")
+qplot(x=date,weight=steps,ylab="total steps", data=activity, geom="histogram")
 
 mean_steps <- mean(activity$steps, na.rm=TRUE)
 median_steps <- median(activity$steps, na.rm=TRUE)
 ```
-It looks like our subjects have a few periods of activity, but tend to be inactive. The take an average of `r mean_steps` steps daily, and their median step count is `r median_steps`.
+ The take an average of `r mean_steps` steps daily, and their median step count is `r median_steps`.
 
 ## What is the average daily activity pattern?
 ```{r pattern}
 library(dplyr)
 pattern <- activity %>% group_by(interval) %>% summarise(average_steps=mean(steps,na.rm=TRUE))
 ggplot(data=pattern,aes(x=interval,y=average_steps)) + geom_line()
+max <- pattern %>% select(interval,average_steps) %>%  top_n(1,average_steps)
 
 ```
 
-It looks like our subjects are most active around mid-day.
+Our subjects are typically most active around interval `r max$interval` with an average of step count of `r max$average_steps`.
 ## Imputing missing values
 Perhaps the missing records is affecting our results. Let's replace our NA values with the total average steps and compare with our previous results.
 ```{r imput}
 sum(is.na(activity$steps))
 activity2 <- activity
-activity2$steps[is.na(activity2$steps)]<-mean(activity2$steps,na.rm=TRUE)
+activity2$steps[is.na(activity2$steps)]<-mean(activity2$steps, na.rm=TRUE)
 
-pattern <- activity2 %>% group_by(interval) %>% summarise(average_steps=mean(steps,na.rm=TRUE))
-ggplot(data=pattern,aes(x=interval,y=average_steps)) + geom_line()
-mean_steps2 <-mean(activity$steps, na.rm=TRUE)
-median_steps2<-median(activity$steps, na.rm=TRUE)
+qplot(date,weight=steps, data=activity2, geom='histogram')
+mean_steps2 <-mean(activity2$steps)
+median_steps2<-median(activity2$steps)
 ```
 After our adjustments our subjects took `r mean_steps2` steps daily, with a median of `r median_steps2`.
 
